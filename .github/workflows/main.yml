@@ -1,54 +1,51 @@
 name: Extract ZIP and Build APK
 
 on:
-workflow_dispatch:
-push:
-branches:
-- main
+  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 permissions:
-contents: read
+  contents: read
 
 jobs:
-build:
-runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-latest
 
-steps:
-  - name: Checkout repository
-    uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  - name: Setup Java
-    uses: actions/setup-java@v4
-    with:
-      distribution: temurin
-      java-version: '17'
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
 
-  - name: Find and extract ZIP files
-    run: |
-      mkdir -p extracted
-      find . -maxdepth 2 -type f -iname "*.zip" -print -exec unzip -o {} -d extracted \;
+      - name: Extract ZIP
+        run: |
+          mkdir -p extracted
 
-      if [ -f extracted/settings.gradle ]; then
-        PROJECT_DIR="extracted"
-      else
-        PROJECT_DIR=$(find extracted -name settings.gradle -printf '%h\n' | head -n 1)
-      fi
+          find . -maxdepth 2 -type f -iname "*.zip" \
+            -exec unzip -oq {} -d extracted \;
 
-      if [ -z "$PROJECT_DIR" ]; then
-        echo "Gradle project not found inside ZIP!"
-        exit 1
-      fi
+          PROJECT_DIR=$(find extracted -name settings.gradle -printf '%h\n' | head -n 1)
 
-      echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "Gradle project not found!"
+            exit 1
+          fi
 
-  - name: Build APK
-    run: |
-      cd "$PROJECT_DIR"
-      gradle assembleDebug
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
 
-  - name: Upload APK
-    uses: actions/upload-artifact@v4
-    with:
-      name: Android-APK
-      path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
-      if-no-files-found: error
+      - name: Build APK
+        run: |
+          cd "$PROJECT_DIR"
+          gradle assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bell-UH1-APK
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
